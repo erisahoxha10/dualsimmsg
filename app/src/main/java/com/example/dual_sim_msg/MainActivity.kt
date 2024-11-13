@@ -12,16 +12,32 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.features.ContentNegotiation
+import io.ktor.gson.gson
+import io.ktor.http.HttpStatusCode
+import io.ktor.response.respond
+import io.ktor.routing.get
+import io.ktor.routing.routing
 
 class MainActivity : AppCompatActivity() {
 
     private val REQUEST_SMS_PERMISSION = 1
+    private lateinit var server: NettyApplicationEngine
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         requestSmsPermission()
+
+        startServer()
+
 
         // Find the button by its ID
         val sendButton: Button = findViewById(R.id.sendButton)
@@ -89,5 +105,29 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Permission denied! Cannot send SMS.", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun startServer() {
+        server = embeddedServer(Netty, port = 8080) {
+            // Ktor application module
+            install(ContentNegotiation) {
+                gson()
+            }
+
+            routing {
+                get("/sendSMS") {
+                    // Extract query parameters
+                    val number = call.request.queryParameters["number"] ?: "No number provided"
+                    val msg = call.request.queryParameters["msg"] ?: "No message provided"
+
+                    // Process the request with the extracted values
+                    val responseMessage = sendSmsFromSpecificSim(number, msg)
+
+                    // Respond with the processed message
+                    call.respond(HttpStatusCode.OK, responseMessage)
+                }
+            }
+        }
+        server.start()
     }
 }
