@@ -6,6 +6,8 @@ plugins {
 android {
     compileSdk 34
 
+    namespace 'com.example.dual_sim_msg'
+
     defaultConfig {
         applicationId "com.example.dual_sim_msg"
         minSdk 26
@@ -29,6 +31,12 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
+    packagingOptions {
+        exclude 'META-INF/INDEX.LIST'
+        exclude 'META-INF/*.kotlin_module'
+        exclude 'META-INF/io.netty.versions.properties'
+    }
 }
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.0'
@@ -39,6 +47,13 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'android.arch.navigation:navigation-fragment-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0'
+    //ktor dependencies for ktor server
+    implementation "io.ktor:ktor-server-netty:1.6.8"
+    implementation "io.ktor:ktor-server-core:1.6.8"
+    implementation "io.ktor:ktor-gson:1.6.8"
+    implementation 'androidx.test:monitor:1.7.2'
+    implementation 'androidx.test.ext:junit-ktx:1.2.1'
+    //implementation "io.ktor:ktor-content-negotiation:1.6.8"
     testImplementation 'junit:junit:4.13.2'
     //noinspection GradleCompatible
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
