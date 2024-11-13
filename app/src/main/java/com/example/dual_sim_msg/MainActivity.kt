@@ -1,13 +1,9 @@
 package com.example.dual_sim_msg
 
 import android.os.Bundle
-//import android.support.v7.app.AppCompatActivity
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-//import android.support.v4.app.ActivityCompat
 import android.telephony.SmsManager
-import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
 import android.util.Log
 import android.widget.Button
@@ -39,7 +35,7 @@ class MainActivity : AppCompatActivity() {
             val phoneNumber = phoneNumberInput.text.toString()
             val message = messageInput.text.toString()
 
-            sendSmsFromSpecificSim2(phoneNumber, message)
+            sendSmsFromSpecificSim(phoneNumber, message)
             Toast.makeText(this, "Message sent!", Toast.LENGTH_SHORT).show()
         }
 
@@ -54,17 +50,17 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(this, permissions, REQUEST_SMS_PERMISSION)
     }
 
-    private fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
+    private fun sendSmsFromSpecificSim(phoneNumber: String, message: String) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
         } else {
             // Get the SubscriptionManager
-            val subscriptionManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+            val subscriptionManager = getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
             val subscriptionInfoList = subscriptionManager.activeSubscriptionInfoList
 
             if (subscriptionInfoList.isNotEmpty()) {
                 // Assuming you want to use the first SIM
-                val subscriptionId = subscriptionInfoList[1].subscriptionId
+                val subscriptionId = subscriptionInfoList[0].subscriptionId
                 val smsManager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
 
                 try {
