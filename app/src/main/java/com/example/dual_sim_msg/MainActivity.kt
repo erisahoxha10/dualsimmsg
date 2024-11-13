@@ -12,16 +12,24 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import io.ktor.application.Application
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
 
 class MainActivity : AppCompatActivity() {
 
     private val REQUEST_SMS_PERMISSION = 1
+    private lateinit var server: NettyApplicationEngine
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         requestSmsPermission()
+
+        startServer()
+
 
         // Find the button by its ID
         val sendButton: Button = findViewById(R.id.sendButton)
@@ -89,5 +97,15 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Permission denied! Cannot send SMS.", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    override fun onDestroy() {
+        server.stop(0, 0)
+        super.onDestroy()
+    }
+
+    private fun startServer() {
+        server = embeddedServer(Netty, port = 8080, module = Application::module)
+        server.start()
     }
 }
