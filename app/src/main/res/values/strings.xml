@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">dual-sim-msg</string>
+    <string name="app_name_single_sim">single-sim-msg</string>
 </resources>
