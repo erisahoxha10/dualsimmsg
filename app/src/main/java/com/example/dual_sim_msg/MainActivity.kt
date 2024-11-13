@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
             val phoneNumber = phoneNumberInput.text.toString()
             val message = messageInput.text.toString()
 
-            sendSmsFromSpecificSim(phoneNumber, message)
+            sendSmsFromSpecificSim2(phoneNumber, message)
             Toast.makeText(this, "Message sent!", Toast.LENGTH_SHORT).show()
         }
 
@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(this, permissions, REQUEST_SMS_PERMISSION)
     }
 
-    private fun sendSmsFromSpecificSim(phoneNumber: String, message: String) {
+    private fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
         } else {
@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
 
             if (subscriptionInfoList.isNotEmpty()) {
                 // Assuming you want to use the first SIM
-                val subscriptionId = subscriptionInfoList[0].subscriptionId
+                val subscriptionId = subscriptionInfoList[1].subscriptionId
                 val smsManager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
 
                 try {
