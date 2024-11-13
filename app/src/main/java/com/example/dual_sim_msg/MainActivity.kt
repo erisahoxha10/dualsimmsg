@@ -12,7 +12,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import io.ktor.application.Application
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.features.ContentNegotiation
+import io.ktor.gson.gson
+import io.ktor.http.HttpStatusCode
+import io.ktor.response.respond
+import io.ktor.routing.get
+import io.ktor.routing.routing
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 
@@ -58,7 +65,7 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(this, permissions, REQUEST_SMS_PERMISSION)
     }
 
-    private fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
+    public fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
         } else {
@@ -84,6 +91,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -105,7 +114,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startServer() {
-        server = embeddedServer(Netty, port = 8080, module = Application::module)
+        server = embeddedServer(Netty, port = 8080) {
+            // Ktor application module
+            install(ContentNegotiation) {
+                gson()
+            }
+
+            routing {
+                get("/sendSMS") {
+                    // Extract query parameters
+                    val number = call.request.queryParameters["number"] ?: "No number provided"
+                    val msg = call.request.queryParameters["msg"] ?: "No message provided"
+
+                    // Process the request with the extracted values
+                    val responseMessage = sendSmsFromSpecificSim2(number, msg)
+
+                    // Respond with the processed message
+                    call.respond(HttpStatusCode.OK, responseMessage)
+                }
+            }
+        }
         server.start()
     }
 }
