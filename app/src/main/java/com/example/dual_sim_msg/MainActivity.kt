@@ -5,6 +5,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -29,7 +30,7 @@ import io.ktor.server.netty.*
 
 class MainActivity : AppCompatActivity() {
 
-    private val REQUEST_SMS_PERMISSION = 1
+    private val REQUEST_PERMISSION = 1
     private lateinit var server: NettyApplicationEngine
     private lateinit var subscriptionManager: SubscriptionManager
     private var SIM_CARD = 0
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         val multipleSimLayout: View = findViewById(R.id.multipleSimLayout)
 
         // now find the num of sim cards in the phone
-        val simCardNum = getSimCardCount()
+        val simCardNum = getSimSlotCount()
         if (simCardNum == 2) {
             // if the number of sim is 2, then populate the dropdown
             // create
@@ -89,6 +90,8 @@ class MainActivity : AppCompatActivity() {
                     TODO("Not yet implemented")
                 }
             }
+        } else {
+            startServerButton.setEnabled(true)
         }
 
 
@@ -110,12 +113,12 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.READ_PHONE_STATE
         )
 
-        ActivityCompat.requestPermissions(this, permissions, REQUEST_SMS_PERMISSION)
+        ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSION)
     }
 
-    private fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
+    private fun sendSmsFromSim(phoneNumber: String, message: String) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_PERMISSION)
         } else {
 
             // get the sim cards info
@@ -128,7 +131,8 @@ class MainActivity : AppCompatActivity() {
 
                 try {
                     smsManager.sendTextMessage(phoneNumber, null, message, null, null)
-                    Toast.makeText(this, "SMS sent successfully from specific SIM", Toast.LENGTH_SHORT).show()
+                    SIM_CARD++
+                    Toast.makeText(this, "SMS sent successfully from SIM $SIM_CARD", Toast.LENGTH_SHORT).show()
                     Log.d("SMS", "Message sent successfully")
                 } catch (e: Exception) {
                     Log.e("SMS", "Error sending SMS: ${e.message}")
@@ -147,11 +151,22 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_SMS_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Permissions granted! You can send SMS.", Toast.LENGTH_SHORT).show()
+        if (requestCode == REQUEST_PERMISSION) {
+            var allGranted = true
+
+            for (i in grantResults.indices) {
+                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false
+                    Toast.makeText(this, "Permission denied for ${permissions[i]}.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            if (allGranted) {
+                Toast.makeText(this, "All permissions granted! You can send SMS.", Toast.LENGTH_SHORT).show()
+                // Call your method to access SIM cards or send SMS here
+                getSimSlotCount() // or any other method that requires permissions
             } else {
-                Toast.makeText(this, "Permission denied! Cannot send SMS.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Some permissions were denied! Cannot send SMS.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -159,6 +174,13 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         server.stop(0, 0)
         super.onDestroy()
+    }
+
+    private fun getSimSlotCount(): Int {
+        val telephonyManager = getSystemService(TelephonyManager::class.java)
+        val simSlotCount = telephonyManager?.phoneCount ?: 0 // Get the number of phone slots
+        Toast.makeText(this, "Number of SIM card slots: $simSlotCount", Toast.LENGTH_SHORT).show()
+        return simSlotCount
     }
 
     private fun startServer() {
@@ -175,7 +197,7 @@ class MainActivity : AppCompatActivity() {
                     val msg = call.request.queryParameters["msg"] ?: "No message provided"
 
                     // Process the request with the extracted values
-                    val responseMessage = sendSmsFromSpecificSim2(number, msg)
+                    val responseMessage = sendSmsFromSim(number, msg)
 
                     // Respond with the processed message
                     call.respond(HttpStatusCode.OK, responseMessage)
@@ -183,26 +205,5 @@ class MainActivity : AppCompatActivity() {
             }
         }
         server.start()
-    }
-
-    private fun getSimCardCount(): Int {
-
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_PHONE_STATE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.READ_PHONE_STATE),
-                REQUEST_SMS_PERMISSION
-            )
-            return 0
-        } else {
-            val subscriptionInfoList = subscriptionManager?.activeSubscriptionInfoList
-            val simCount = subscriptionInfoList?.size ?: 0
-            Toast.makeText(this, "Number of SIM cards: $simCount", Toast.LENGTH_SHORT).show()
-            return simCount
-        }
     }
 }
