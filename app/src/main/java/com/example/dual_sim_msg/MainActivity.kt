@@ -7,7 +7,7 @@ import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import android.util.Log
 import android.widget.Button
-import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -35,23 +35,19 @@ class MainActivity : AppCompatActivity() {
 
         requestSmsPermission()
 
-        startServer()
-
 
         // Find the button by its ID
-        val sendButton: Button = findViewById(R.id.sendButton)
-        val phoneNumberInput: EditText = findViewById(R.id.phoneNumber)
-        val messageInput: EditText = findViewById(R.id.message)
+        val startServerButton: Button = findViewById(R.id.startServer)
+        var statusTextView: TextView = findViewById(R.id.statusTextView)
 
 
         // Set up the click listener
-        sendButton.setOnClickListener {
+        startServerButton.setOnClickListener {
             // Action to perform on button click
-            val phoneNumber = phoneNumberInput.text.toString()
-            val message = messageInput.text.toString()
-
-            sendSmsFromSpecificSim2(phoneNumber, message)
-            Toast.makeText(this, "Message sent!", Toast.LENGTH_SHORT).show()
+            startServer()
+            Toast.makeText(this, "Server started!", Toast.LENGTH_LONG).show()
+            startServerButton.setEnabled(false)
+            statusTextView.setText("Server is running on this device on port 8080")
         }
 
     }
