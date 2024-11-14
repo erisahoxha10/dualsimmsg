@@ -6,7 +6,11 @@ import android.content.pm.PackageManager
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +31,8 @@ class MainActivity : AppCompatActivity() {
 
     private val REQUEST_SMS_PERMISSION = 1
     private lateinit var server: NettyApplicationEngine
+    private lateinit var subscriptionManager: SubscriptionManager
+    private var SIM_CARD = 0
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,10 +41,56 @@ class MainActivity : AppCompatActivity() {
 
         requestSmsPermission()
 
+        subscriptionManager = getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+
+        // get the number of sim cards on the phone
+        // if there is just one sim card, just display the button "Start server"
+        // otherwise give the user the option to select which sim card to use
 
         // Find the button by its ID
         val startServerButton: Button = findViewById(R.id.startServer)
-        var statusTextView: TextView = findViewById(R.id.statusTextView)
+        val statusTextView: TextView = findViewById(R.id.statusTextView)
+        val multipleSimLayout: View = findViewById(R.id.multipleSimLayout)
+
+        // now find the num of sim cards in the phone
+        val simCardNum = getSimCardCount()
+        if (simCardNum == 2) {
+            // if the number of sim is 2, then populate the dropdown
+            // create
+            var simCardsSelect: Spinner = findViewById(R.id.simCards)
+
+            // Prepare data for the Spinner
+            val items = listOf("Sim 1", "Sim 2")
+
+            // Create an ArrayAdapter
+            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, items)
+
+            // Specify the layout to use when the list of choices appears
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+            // Apply the adapter to the Spinner
+            simCardsSelect.adapter = adapter
+
+            // then display the layout where the user can select which sim card to use
+            multipleSimLayout.visibility = View.VISIBLE
+
+            // Set a listener for item selection
+            simCardsSelect.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: android.view.View, position: Int, id: Long) {
+                    val selectedItem = parent.getItemAtPosition(position).toString()
+                    if(selectedItem.equals("Sim 2"))
+                        SIM_CARD = 1
+                    Toast.makeText(this@MainActivity, "Selected: $selectedItem", Toast.LENGTH_SHORT).show()
+                    // if the card is selected then enable the button to start the server
+                    startServerButton.setEnabled(true)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {
+                    TODO("Not yet implemented")
+                }
+            }
+        }
+
 
 
         // Set up the click listener
@@ -61,17 +113,17 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(this, permissions, REQUEST_SMS_PERMISSION)
     }
 
-    public fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
+    private fun sendSmsFromSpecificSim2(phoneNumber: String, message: String) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
         } else {
-            // Get the SubscriptionManager
-            val subscriptionManager = getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+
+            // get the sim cards info
             val subscriptionInfoList = subscriptionManager.activeSubscriptionInfoList
 
             if (subscriptionInfoList.isNotEmpty()) {
                 // Assuming you want to use the first SIM
-                val subscriptionId = subscriptionInfoList[1].subscriptionId
+                val subscriptionId = subscriptionInfoList[SIM_CARD].subscriptionId
                 val smsManager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
 
                 try {
@@ -131,5 +183,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
         server.start()
+    }
+
+    private fun getSimCardCount(): Int {
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_PHONE_STATE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_PHONE_STATE),
+                REQUEST_SMS_PERMISSION
+            )
+            return 0
+        } else {
+            val subscriptionInfoList = subscriptionManager?.activeSubscriptionInfoList
+            val simCount = subscriptionInfoList?.size ?: 0
+            Toast.makeText(this, "Number of SIM cards: $simCount", Toast.LENGTH_SHORT).show()
+            return simCount
+        }
     }
 }
