@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">dual-sim-msg</string>
     <string name="app_name_single_sim">single-sim-msg</string>
+    <string name="start_server_button">Start Server</string>
+    <string name="status_message">Server is running on this device on port 8080</string>
+    <string name="stop_server_button">Stop Server</string>
 </resources>

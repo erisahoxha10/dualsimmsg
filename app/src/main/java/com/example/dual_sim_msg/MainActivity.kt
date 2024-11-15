@@ -6,8 +6,9 @@ import android.content.pm.PackageManager
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import android.util.Log
+import android.view.View
 import android.widget.Button
-import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -27,6 +28,8 @@ class MainActivity : AppCompatActivity() {
 
     private val REQUEST_SMS_PERMISSION = 1
     private lateinit var server: NettyApplicationEngine
+    private lateinit var subscriptionManager: SubscriptionManager
+    private var SIM_CARD = 0
 
 
 
@@ -36,23 +39,29 @@ class MainActivity : AppCompatActivity() {
 
         requestSmsPermission()
 
-        startServer()
-
-
         // Find the button by its ID
-        val sendButton: Button = findViewById(R.id.sendButton)
-        val phoneNumberInput: EditText = findViewById(R.id.phoneNumber)
-        val messageInput: EditText = findViewById(R.id.message)
+        val startServerButton: Button = findViewById(R.id.startServer)
+        val stopServerButton: Button = findViewById(R.id.stopServer)
+        val statusTextView: TextView = findViewById(R.id.statusTextView)
 
 
         // Set up the click listener
-        sendButton.setOnClickListener {
-            // Action to perform on button click
-            val phoneNumber = phoneNumberInput.text.toString()
-            val message = messageInput.text.toString()
+        startServerButton.setOnClickListener {
+            startServer()
+            startServerButton.setEnabled(false)
+            statusTextView.visibility = View.VISIBLE
+            stopServerButton.setEnabled(true)
+            stopServerButton.visibility = View.VISIBLE
+            Toast.makeText(this, "Server started!", Toast.LENGTH_LONG).show()
+        }
 
-            sendSmsFromSpecificSim(phoneNumber, message)
-            Toast.makeText(this, "Message sent!", Toast.LENGTH_SHORT).show()
+        stopServerButton.setOnClickListener{
+            server.stop(0, 0)
+            stopServerButton.visibility = View.GONE
+            statusTextView.setText("Server stopped!")
+            startServerButton.setEnabled(true)
+            stopServerButton.setEnabled(false)
+            Toast.makeText(this, "Server stopped!", Toast.LENGTH_LONG).show()
         }
 
     }
@@ -64,32 +73,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_SMS_PERMISSION)
-    }
-
-    private fun sendSmsFromSpecificSim(phoneNumber: String, message: String) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
-        } else {
-            // Get the SubscriptionManager
-            val subscriptionManager = getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
-            val subscriptionInfoList = subscriptionManager.activeSubscriptionInfoList
-
-            if (subscriptionInfoList.isNotEmpty()) {
-                // Assuming you want to use the first SIM
-                val subscriptionId = subscriptionInfoList[0].subscriptionId
-                val smsManager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
-
-                try {
-                    smsManager.sendTextMessage(phoneNumber, null, message, null, null)
-                    Toast.makeText(this, "SMS sent successfully from specific SIM", Toast.LENGTH_SHORT).show()
-                    Log.d("SMS", "Message sent successfully")
-                } catch (e: Exception) {
-                    Log.e("SMS", "Error sending SMS: ${e.message}")
-                }
-            } else {
-                Log.e("SMS", "No active SIMs found")
-            }
-        }
     }
 
     override fun onRequestPermissionsResult(
@@ -121,7 +104,7 @@ class MainActivity : AppCompatActivity() {
                     val msg = call.request.queryParameters["msg"] ?: "No message provided"
 
                     // Process the request with the extracted values
-                    val responseMessage = sendSmsFromSpecificSim(number, msg)
+                    val responseMessage = sendSmsFromSim(number, msg)
 
                     // Respond with the processed message
                     call.respond(HttpStatusCode.OK, responseMessage)
@@ -129,5 +112,36 @@ class MainActivity : AppCompatActivity() {
             }
         }
         server.start()
+    }
+
+    private fun sendSmsFromSim(phoneNumber: String, message: String) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
+        } else {
+
+            // get the sim cards info
+            val subscriptionInfoList = subscriptionManager.activeSubscriptionInfoList
+
+            if (subscriptionInfoList.isNotEmpty()) {
+//                 Assuming you want to use the first SIM
+                val subscriptionId = subscriptionInfoList[SIM_CARD].subscriptionId
+                val smsManager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
+
+                try {
+                    smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+                    Toast.makeText(this, "SMS sent successfully!", Toast.LENGTH_SHORT).show()
+                    Log.d("SMS", "Message sent successfully")
+                } catch (e: Exception) {
+                    Log.e("SMS", "Error sending SMS: ${e.message}")
+                }
+            } else {
+                Log.e("SMS", "No active SIMs found")
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        server.stop(0, 0)
+        super.onDestroy()
     }
 }
