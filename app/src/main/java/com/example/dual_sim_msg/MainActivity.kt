@@ -50,8 +50,9 @@ class MainActivity : AppCompatActivity() {
             startServer()
             startServerButton.setEnabled(false)
             statusTextView.visibility = View.VISIBLE
-            stopServerButton.setEnabled(true)
             stopServerButton.visibility = View.VISIBLE
+            stopServerButton.setEnabled(true)
+            statusTextView.setText("Server is running on this device on port 8080")
             Toast.makeText(this, "Server started!", Toast.LENGTH_LONG).show()
         }
 
